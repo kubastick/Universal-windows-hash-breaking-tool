@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.IO;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Security.Cryptography;
 
@@ -12,6 +13,7 @@ namespace Universal_windows_hash_breaking_tool
     {
         //If 0, hash break failed
         static int breaked = 0;
+
         static void Main(string[] args)
         {
             //View welcome strings
@@ -43,9 +45,10 @@ namespace Universal_windows_hash_breaking_tool
             Console.WriteLine("________________________________________________");
             Console.WriteLine("Select hashing algorithm:");
             Console.WriteLine("[1] MD5");
-            Console.WriteLine("[2] SHA256");
-            Console.WriteLine("[3] SHA384");
-            Console.WriteLine("[4] SHA512");
+            Console.WriteLine("[2] SHA1");
+            Console.WriteLine("[3] SHA256");
+            Console.WriteLine("[4] SHA384");
+            Console.WriteLine("[5] SHA512");
             Console.ForegroundColor = ConsoleColor.White;
             //Wait for choice
             ConsoleKey button;
@@ -57,15 +60,20 @@ namespace Universal_windows_hash_breaking_tool
             }
             if (button == ConsoleKey.D2)
             {
-                Algo_SHA256();
+                Algo_SHA1();
                 return;
             }
             if (button == ConsoleKey.D3)
             {
-                Algo_SHA384();
+                Algo_SHA256();
                 return;
             }
             if (button == ConsoleKey.D4)
+            {
+                Algo_SHA384();
+                return;
+            }
+            if (button == ConsoleKey.D5)
             {
                 Algo_SHA512();
                 return;
@@ -78,6 +86,7 @@ namespace Universal_windows_hash_breaking_tool
             return;
         }
 
+        //Algos
         static void Algo_MD5()
         {
             Console.ForegroundColor = ConsoleColor.Yellow;
@@ -112,7 +121,6 @@ namespace Universal_windows_hash_breaking_tool
             ConsoleKey gotoend;
             Console.ForegroundColor = ConsoleColor.White;
             gotoend = Console.ReadKey().Key;
-
             if (button == ConsoleKey.Y)
             {
                 Console.ForegroundColor = ConsoleColor.White;
@@ -184,6 +192,122 @@ namespace Universal_windows_hash_breaking_tool
                         }
                     }
                    
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                }
+            }
+
+            //Call the ending function
+            End();
+        }
+
+        static void Algo_SHA1()
+        {
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.WriteLine("\nMD5 hashing algorithm");
+            Console.WriteLine("Select dictionary file (f.e.: passwords.txt or C://passwords.txt)");
+            Console.WriteLine("(You can download one here: https://github.com/danielmiessler/SecLists/tree/master/Passwords)");
+            Console.ForegroundColor = ConsoleColor.White;
+            string filepath = Console.ReadLine();
+            if (!File.Exists(filepath))
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.Write("File do not exists, try again");
+                Algo_SHA1();
+                return;
+            }
+            //File found
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine("File found!");
+
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.Write("Enter hash here:");
+            string hash = Console.ReadLine();
+
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.WriteLine("Load dictionary into RAM? Y/N");
+            ConsoleKey button;
+            Console.ForegroundColor = ConsoleColor.White;
+            button = Console.ReadKey().Key;
+
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.WriteLine("\nEnd after breaking at least one hash? Y/N");
+            ConsoleKey gotoend;
+            Console.ForegroundColor = ConsoleColor.White;
+            gotoend = Console.ReadKey().Key;
+            if (button == ConsoleKey.Y)
+            {
+                Console.ForegroundColor = ConsoleColor.White;
+                Console.WriteLine("\nLoading dictionary into RAM, this may take some time...");
+                string[] dictionary = File.ReadAllLines(filepath);
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine("Dictionary loaded!");
+                Console.ForegroundColor = ConsoleColor.White;
+                Console.WriteLine("Hash breaker started");
+                try
+                {
+                    foreach (var key in dictionary)
+                    {
+                        if (hash != SHA1Hash(key))
+                        {
+
+                        }
+                        else
+                        {
+                            Console.ForegroundColor = ConsoleColor.Green;
+                            Console.WriteLine("[Succes] Hash breaked! Value is:" + key);
+                            breaked = 1;
+                            using (StreamWriter file = new StreamWriter("result.txt", true))
+                            {
+                                file.WriteLine(key);
+                            }
+                            if (gotoend == ConsoleKey.Y)
+                            {
+                                End();
+                                return;
+                            }
+                        }
+                    }
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                }
+            }
+
+            if (button == ConsoleKey.N)
+            {
+                Console.ForegroundColor = ConsoleColor.White;
+                Console.WriteLine("Hash breaker started");
+                try
+                {
+                    string line;
+                    StreamReader file = new StreamReader(filepath);
+                    while ((line = file.ReadLine()) != null)
+                    {
+                        if (hash != SHA1Hash(line))
+                        {
+
+                        }
+                        else
+                        {
+                            Console.ForegroundColor = ConsoleColor.Green;
+                            Console.WriteLine("[Succes] Hash breaked! Value is:" + line);
+                            breaked = 1;
+                            using (StreamWriter log = new StreamWriter("result.txt", true))
+                            {
+                                log.WriteLine(line);
+                            }
+                            if (gotoend == ConsoleKey.Y)
+                            {
+                                End();
+                                return;
+                            }
+                        }
+                    }
+
                 }
                 catch (Exception e)
                 {
@@ -572,7 +696,6 @@ namespace Universal_windows_hash_breaking_tool
             // step 1, calculate MD5 hash from input
 
             MD5 md5 = System.Security.Cryptography.MD5.Create();
-
             byte[] inputBytes = System.Text.Encoding.ASCII.GetBytes(input);
 
             byte[] hash = md5.ComputeHash(inputBytes);
@@ -633,6 +756,23 @@ namespace Universal_windows_hash_breaking_tool
                 var hashedInputStringBuilder = new System.Text.StringBuilder(128);
                 foreach (var b in hashedInputBytes)
                     hashedInputStringBuilder.Append(b.ToString("X2"));
+                return hashedInputStringBuilder.ToString();
+            }
+        }
+
+        public static string SHA1Hash(string input)
+        {
+            var bytes = System.Text.Encoding.UTF8.GetBytes(input);
+            using (var hash = System.Security.Cryptography.SHA1.Create())
+            {
+                var hashedInputBytes = hash.ComputeHash(bytes);
+
+                // Convert to text
+                // StringBuilder Capacity is 96, because 160 bits / 8 bits in byte * 2 symbols for byte 
+                var hashedInputStringBuilder = new System.Text.StringBuilder(40);
+                foreach (var b in hashedInputBytes)
+                    //Make all letters lower-case
+                    hashedInputStringBuilder.Append(b.ToString("x2"));
                 return hashedInputStringBuilder.ToString();
             }
         }
